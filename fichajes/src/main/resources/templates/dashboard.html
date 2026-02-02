@@ -1,32 +1,40 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
   <title>Dashboard</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<header>Employee Dashboard</header>
+<div class="login-container">
 
-<div class="container">
+  <h2>Dashboard</h2>
 
-  <div class="card">
-    <h2>Time Punch</h2>
+  <p>
+    Current status:
+    <strong th:text="${session.punchStatus}"></strong>
+  </p>
 
-    <form action="/time-punch/in" method="post">
-      <button type="submit">Punch In</button>
+  <div class="button-group">
+
+    <form action="/punch/start" method="post">
+      <button type="submit">Start Work</button>
     </form>
 
-    <form action="/time-punch/out" method="post">
-      <button type="submit">Punch Out</button>
+    <form action="/punch/end" method="post">
+      <button type="submit">End Work</button>
     </form>
 
-  </div>
+    <form action="/punch/break-in" method="post">
+      <button type="submit">Break In</button>
+    </form>
 
-  <div class="card">
-    <h2>Statistics</h2>
-    <a href="/statistics">Estadisticas...</a>
+    <form action="/punch/break-out" method="post">
+      <button type="submit">Break Out</button>
+    </form>
   </div>
+  <br>
+  <a href="/statistics">Statistics</a>
 
 </div>
 

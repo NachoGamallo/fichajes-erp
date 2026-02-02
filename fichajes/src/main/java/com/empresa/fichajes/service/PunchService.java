@@ -1,5 +1,6 @@
 package com.empresa.fichajes.service;
 
+import com.empresa.fichajes.exception.BusinessException;
 import com.empresa.fichajes.model.Employee;
 import com.empresa.fichajes.model.Punch;
 import com.empresa.fichajes.model.PunchType;
@@ -14,22 +15,28 @@ import java.util.List;
 public class PunchService {
 
     private final PunchRepository repo;
-
     public PunchService(PunchRepository repo){this.repo = repo;}
 
-    public void punch(Employee e , PunchType type){
+    public Punch registerIn(Employee employee) {
 
-        LocalTime now = LocalTime.now();
-        boolean outOfSchedule = now.isBefore(e.getWorkSchedule().getStartTime()) || now.isAfter(e.getWorkSchedule().getEndTime());
+        LocalDate today = LocalDate.now();
 
-        Punch p = new Punch();
-        p.setEmployee(e);
-        p.setType(type);
-        p.setPunchDate(LocalDate.now());
-        p.setPunchTime(now);
-        p.setOutOfSchedule(outOfSchedule);
+        if (repo.existsByEmployeeAndPunchDateAndType(
+                employee, today, PunchType.IN)) {
+            throw new BusinessException("Employee already punched IN today");
+        }
 
-        repo.save(p);
+        return repo.save(new Punch(employee, PunchType.IN, false));
+
+    }
+
+    public Punch registerOut(Employee employee){
+
+        LocalDate today = LocalDate.now();
+
+        if (!repo.existsByEmployeeAndPunchDateAndType(employee,today,PunchType.IN)) throw new BusinessException("Cannot punch OUT without punched IN");
+        return repo.save(new Punch(employee, PunchType.OUT, false));
+
     }
 
     public List<Punch> getDailyPunches( Employee emp , LocalDate date ){

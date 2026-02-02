@@ -1,6 +1,7 @@
 package com.empresa.fichajes.controller;
 
 import com.empresa.fichajes.model.Employee;
+import com.empresa.fichajes.model.PunchStatus;
 import com.empresa.fichajes.service.AuthService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -28,6 +29,7 @@ public class AuthController {
         }
 
         session.setAttribute("employee", employee);
+        session.setAttribute("punchStatus", PunchStatus.NOT_WORKING);
         return "redirect:/dashboard";
     }
 

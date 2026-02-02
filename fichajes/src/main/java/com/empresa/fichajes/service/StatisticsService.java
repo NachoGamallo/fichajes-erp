@@ -34,10 +34,10 @@ public class StatisticsService {
 
         for (LocalDate day : punches.stream().map(Punch::getPunchDate).distinct().toList()){
 
-            Punch checkIn = punches.stream().filter(p -> p.getType() == PunchType.CHECK_IN).findFirst().orElse(null);
-            Punch checkOut = punches.stream().filter(p -> p.getType() == PunchType.CHECK_OUT).findFirst().orElse(null);
-            Punch breakStart = punches.stream().filter(p -> p.getType() == PunchType.BREAK_START).findFirst().orElse(null);
-            Punch breakEnd = punches.stream().filter(p -> p.getType() == PunchType.BREAK_END).findFirst().orElse(null);
+            Punch checkIn = punches.stream().filter(p -> p.getType() == PunchType.IN).findFirst().orElse(null);
+            Punch checkOut = punches.stream().filter(p -> p.getType() == PunchType.OUT).findFirst().orElse(null);
+            Punch breakStart = punches.stream().filter(p -> p.getType() == PunchType.BREAK_IN).findFirst().orElse(null);
+            Punch breakEnd = punches.stream().filter(p -> p.getType() == PunchType.BREAK_OUT).findFirst().orElse(null);
 
             if (checkIn != null && checkOut != null){
 
