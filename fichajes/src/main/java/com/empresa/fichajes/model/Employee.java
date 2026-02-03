@@ -1,32 +1,21 @@
 package com.empresa.fichajes.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.Data;
 
-import java.util.UUID;
-
+@Data
 @Entity
-@Getter @Setter
+@Table (name = "employees")
 public class Employee {
 
-    @Id
-    @GeneratedValue
-    private UUID id;
-
-    private String firstName;
-    private String lastName;
-    private String email;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String fullName;
+    private String position;
     private String password;
-    private String role;
-    private boolean active;
 
     @ManyToOne
+    @JoinColumn(name = "department_id")
     private Department department;
-    @ManyToOne
-    private WorkSchedule workSchedule;
 
 }

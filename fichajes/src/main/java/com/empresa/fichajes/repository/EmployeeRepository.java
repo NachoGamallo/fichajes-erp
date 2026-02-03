@@ -3,11 +3,10 @@ package com.empresa.fichajes.repository;
 import com.empresa.fichajes.model.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
+import java.util.List;
 
-public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
-    Employee findEmployeeByEmail(String email);
+    List<Employee> findByDepartmentId(Long departmentId);
 
-    Employee findEmployeesById(UUID id);
 }

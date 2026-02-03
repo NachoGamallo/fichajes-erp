@@ -1,22 +1,15 @@
 package com.empresa.fichajes.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.Data;
 
-import java.util.UUID;
-
+@Data
 @Entity
-@Getter @Setter
+@Table (name = "departments")
 public class Department {
 
-    @Id
-    @GeneratedValue
-    private UUID id;
-
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String name;
-    private String description;
 
 }
