@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ERP Attendance System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none; }
+        .card { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 10px; }
+        body { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    <div id="loginSection" class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card p-4">
+                <h3 class="text-center mb-4">ERP Login</h3>
+                <label>Department</label>
+                <select id="deptSelect" class="form-select mb-3" onchange="loadEmployees()"></select>
+
+                <label>Employee</label>
+                <select id="empSelect" class="form-select mb-3"></select>
+
+                <label>Password</label>
+                <input type="password" id="passInput" class="form-control mb-3" placeholder="Enter password">
+
+                <button class="btn btn-primary w-100" onclick="login()">Login to Dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardSection" class="row hidden">
+        <div class="col-md-4">
+            <div class="card p-4 mb-4">
+                <h4 id="welcomeMsg">Welcome</h4>
+                <p id="empDetails" class="text-muted"></p>
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="doPunch('CLOCK_IN')">Clock In</button>
+                    <button class="btn btn-warning" onclick="doPunch('BREAK_IN')">Break In</button>
+                    <button class="btn btn-info" onclick="doPunch('BREAK_OUT')">Break Out</button>
+                    <button class="btn btn-danger" onclick="doPunch('CLOCK_OUT')">Clock Out</button>
+                </div>
+                <button class="btn btn-link mt-3" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="card p-4 mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Histórico de Actividad</h5>
+                <select id="rangeSelect" class="form-select w-auto" onchange="loadDynamicHistory()">
+                    <option value="DAY">Hoy</option>
+                    <option value="WEEK">Esta Semana</option>
+                    <option value="MONTH">Este Mes</option>
+                    <option value="YEAR">Este Año</option>
+                    <option value="ALL">Últimos 2 meses</option>
+                </select>
+            </div>
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <small class="text-uppercase text-muted">Días Activos</small>
+                    <div id="hDays" class="h2 mb-0">-</div>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-uppercase text-muted">Horas Efectivas</small>
+                    <div id="hWork" class="h2 mb-0 text-primary">-</div>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-uppercase text-muted">Descansos</small>
+                    <div id="hBreak" class="h2 mb-0 text-warning">-</div>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-uppercase text-muted">Horas Extra</small>
+                    <div id="hExtra" class="h2 mb-0 text-success">-</div>
+                </div>
+            </div><br><br>
+            <div class="card p-3 mb-3 bg-light border-0">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <span class="badge bg-primary p-2">📅 Horario Fijo</span>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Martes a Domingo: 09:00 - 15:00</h6>
+                        <small class="text-muted">Lunes y Viernes se computan como Horas Extra</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-4">
+                <div class="col-md-6">
+                    <div class="p-3 border rounded bg-white">
+                        <small class="text-muted d-block">Días Ausente (Mes)</small>
+                        <span id="mAbs" class="h4 fw-bold text-danger">-</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 border rounded bg-white">
+                        <small class="text-muted d-block">Impuntualidades</small>
+                        <span id="mLate" class="h4 fw-bold text-warning">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://localhost:8080/api";
+    let selectedEmployee = null;
+    let employeesList = [];
+
+    // 1. Cargar Departamentos al iniciar
+    async function init() {
+        try {
+            const res = await fetch(`${API_URL}/departments`);
+            const depts = await res.json();
+            console.log("Datos recibidos:", depts);
+
+            if (depts && depts.length > 0) {
+                const html = depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                document.getElementById('deptSelect').innerHTML = html;
+                loadEmployees(); // Solo se llama si hay datos
+            } else {
+                console.error("La lista de departamentos está vacía en el servidor.");
+            }
+        } catch (e) {
+            console.error("Error de conexión:", e);
+        }
+    }
+
+    // 2. Cargar Empleados del departamento
+    async function loadEmployees() {
+        const deptSelect = document.getElementById('deptSelect');
+        const deptId = deptSelect.value;
+
+        // VALIDACIÓN CRUCIAL: Si no hay ID de departamento, abortamos la ejecución
+        if (!deptId || deptId === "") {
+            console.warn("No Department ID found yet, skipping employees load.");
+            return;
+        }
+
+        try {
+            console.log("Fetching employees for Dept ID:", deptId);
+            const res = await fetch(`${API_URL}/employees/${deptId}`);
+
+            if (!res.ok) throw new Error("Error in server response");
+
+            employeesList = await res.json();
+            const html = employeesList.map(e => `<option value="${e.id}">${e.fullName}</option>`).join('');
+            document.getElementById('empSelect').innerHTML = html;
+
+            // Llamamos a mostrar info del primer empleado cargado
+            if (employeesList.length > 0) showEmployeeInfo();
+
+        } catch (error) {
+            console.error("Failed to load employees:", error);
+        }
+    }
+
+    // 3. Lógica de Login
+    function login() {
+        const empId = document.getElementById('empSelect').value;
+        const pass = document.getElementById('passInput').value;
+        selectedEmployee = employeesList.find(e => e.id == empId);
+
+        if (selectedEmployee && selectedEmployee.password === pass) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('welcomeMsg').innerText = `Hello, ${selectedEmployee.fullName}`;
+            document.getElementById('empDetails').innerText = `${selectedEmployee.position} | ${selectedEmployee.department.name}`;
+
+            // Cargamos las estadísticas iniciales
+            loadStats(empId);
+            loadDynamicHistory(); // Cargamos el histórico por defecto (Hoy)
+        } else {
+            alert("Incorrect password!");
+        }
+    }
+
+    // 4. Fichar
+    async function doPunch(type) {
+        const res = await fetch(`${API_URL}/punch?empId=${selectedEmployee.id}&pass=${selectedEmployee.password}&action=${type}`, {method: 'POST'});
+        const msg = await res.text();
+        alert(msg);
+        loadStats(selectedEmployee.id);
+    }
+
+    // 5. Cargar Stats
+    async function loadStats(id) {
+        try {
+            const res = await fetch(`${API_URL}/stats/${id}`);
+            const s = await res.json(); // La respuesta se guarda en 's'
+
+            console.log("Stats cargadas:", s);
+
+            // Actualizamos promedios (Asegúrate de que estos IDs existan en tu HTML)
+            if(document.getElementById('statWork')) document.getElementById('statWork').innerText = s.avgWork + "h";
+            if(document.getElementById('statBreak')) document.getElementById('statBreak').innerText = s.avgBreak + "h";
+            if(document.getElementById('statExtra')) document.getElementById('statExtra').innerText = s.avgExtra + "h";
+
+            // Actualizamos métricas de horario fijo
+            // Ahora usamos 's' porque 'data' no existe aquí
+            document.getElementById('mAbs').innerText = s.absences !== undefined ? s.absences : "0";
+            document.getElementById('mLate').innerText = s.lateness !== undefined ? s.lateness : "0";
+
+            // El campo statDays también viene del servidor
+            if(document.getElementById('statDays')) document.getElementById('statDays').innerText = s.daysWorked;
+
+        } catch (error) {
+            console.error("Error al cargar estadísticas iniciales:", error);
+        }
+    }
+
+    // 6. Cargar historico dinamico (Corregida con los nombres del Backend)
+    async function loadDynamicHistory() {
+        if (!selectedEmployee) return;
+
+        const range = document.getElementById('rangeSelect').value;
+        const url = `${API_URL}/stats/dynamic/${selectedEmployee.id}?range=${range}`;
+
+        try {
+            const res = await fetch(url);
+            const d = await res.json();
+
+            // Totales de horas
+            document.getElementById('hDays').innerText = d.countDays || "0";
+            document.getElementById('hWork').innerText = (d.totalWork || "0.00") + "h";
+            document.getElementById('hBreak').innerText = (d.totalBreak || "0.00") + "h";
+            document.getElementById('hExtra').innerText = (d.totalExtra || "0.00") + "h";
+
+            // --- NUEVO: Actualización dinámica de Ausencias e Impuntualidades ---
+            document.getElementById('mAbs').innerText = d.absences !== undefined ? d.absences : "0";
+            document.getElementById('mLate').innerText = d.lateness !== undefined ? d.lateness : "0";
+
+        } catch (e) {
+            console.error("Error al filtrar historial:", e);
+        }
+    }
+
+    init();
+
+</script>
+</body>
+</html>
